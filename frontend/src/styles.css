@@ -11,6 +11,7 @@ body { margin: 0; background: #f6f7f9; color: #18212f; font-family: Inter, "Ping
 .metric-card span, .muted, small { color: #667085; }
 .metric-card strong { font-size: 30px; }
 .workspace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.panel--wide { grid-column: 1 / -1; }
 .panel { padding: 20px; min-width: 0; }
 .panel h2 { margin: 0 0 14px; font-size: 20px; }
 .feature-card { padding: 14px; margin-bottom: 12px; }

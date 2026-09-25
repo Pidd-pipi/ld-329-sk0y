@@ -20,6 +20,7 @@ docker compose up -d
 
 - 技能发布与管理：技能描述、熟练度、可交换时间段、回报类型和作品凭证。
 - 需求发布与浏览：按类别、校区、期望时间和响应数量查看求助需求。
+- 响应与预约闭环：同学可对需求提交交换说明与空闲时段（同一条需求不重复报名）；发起人从候选人中选定一人，系统按需求时间生成待双方确认的预约并停止接收响应；被选同学该时段已有其他预约时会提示冲突且需求保持开放、可改选他人；双方确认后预约生效，取消后需求重新开放。
 - 智能匹配推荐：展示互补技能、匹配度、共同可用时间和推荐理由。
 - 交换预约与确认：记录双方确认状态、时间、地点和协商议程。
 - 评价与信用体系：评分、文字评价、信用分和信用等级用于推荐权重。
@@ -85,12 +86,18 @@ go run ./cmd/server
 - `GET /api/health`
 - `GET /api/dashboard/overview`
 - `GET /api/skills`
-- `GET /api/needs`
+- `GET /api/needs` — 需求卡列表，附带候选人、当前用户的响应与预约状态
+- `POST /api/needs/:id/responses` — 提交响应（交换说明 + 空闲时段）
+- `POST /api/needs/:id/responses/:responseId/select` — 发起人选定候选人（含时段冲突校验）
 - `GET /api/matches`
 - `GET /api/appointments`
+- `POST /api/appointments/:id/confirm` — 预约双方任一方确认
+- `POST /api/appointments/:id/cancel` — 取消待确认预约并释放需求
 - `GET /api/reviews`
 - `GET /api/messages`
 - `GET /api/profile`
+
+> 当前为内存数据演示环境，未接入登录鉴权；请求头 `X-User-Name` 可切换当前同学身份（默认 `林澈`），接入 JWT 后由认证中间件替换。
 
 ## 环境变量说明
 
