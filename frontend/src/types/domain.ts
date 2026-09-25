@@ -18,9 +18,46 @@ export interface Need {
   category: string;
   campus: string;
   expectTime: string;
+  slot: string;
   budgetType: string;
   description: string;
+  status: string;
   responses: number;
+}
+
+export interface NeedResponse {
+  id: number;
+  needId: number;
+  student: string;
+  note: string;
+  slots: string[];
+  status: string;
+}
+
+export interface Appointment {
+  id: number;
+  needId: number;
+  pair: string;
+  requester: string;
+  provider: string;
+  time: string;
+  slot: string;
+  place: string;
+  status: string;
+  agenda: string;
+}
+
+/** 需求卡片视图：附带当前用户的响应、预约与候选人 */
+export interface NeedView extends Need {
+  myResponse?: NeedResponse;
+  myAppointment?: Appointment;
+  candidates?: NeedResponse[];
+}
+
+/** 提交响应的载荷：交换说明 + 空闲时段 */
+export interface ResponsePayload {
+  note: string;
+  slots: string[];
 }
 
 export interface Match {
@@ -32,15 +69,6 @@ export interface Match {
   score: number;
   commonSlots: string[];
   recommendation: string;
-}
-
-export interface Appointment {
-  id: number;
-  pair: string;
-  time: string;
-  place: string;
-  status: string;
-  agenda: string;
 }
 
 export interface Review {
@@ -74,7 +102,7 @@ export interface Overview {
   categories: string[];
   metrics: Record<string, number>;
   skills: Skill[];
-  needs: Need[];
+  needs: NeedView[];
   matches: Match[];
   appointments: Appointment[];
   reviews: Review[];

@@ -25,16 +25,33 @@ CREATE TABLE IF NOT EXISTS needs (
   category VARCHAR(40) NOT NULL,
   campus VARCHAR(40) NOT NULL,
   expect_time VARCHAR(80) NOT NULL,
+  slot VARCHAR(40) NOT NULL COMMENT '标准化时段，用于预约冲突检测',
   budget_type VARCHAR(40) NOT NULL,
-  description TEXT NOT NULL
+  description TEXT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT '招募中' COMMENT '招募中/已定人'
+);
+
+CREATE TABLE IF NOT EXISTS need_responses (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  need_id BIGINT NOT NULL,
+  student VARCHAR(80) NOT NULL,
+  note VARCHAR(300) NOT NULL COMMENT '交换说明',
+  slots VARCHAR(300) NOT NULL COMMENT '空闲时段，逗号分隔',
+  status VARCHAR(20) NOT NULL DEFAULT '待选定' COMMENT '待选定/已入选/未入选',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_need_student (need_id, student) COMMENT '同一条需求不重复报名'
 );
 
 CREATE TABLE IF NOT EXISTS appointments (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  need_id BIGINT NOT NULL DEFAULT 0,
   pair_name VARCHAR(120) NOT NULL,
+  requester VARCHAR(80) NOT NULL,
+  provider VARCHAR(80) NOT NULL,
   exchange_time VARCHAR(80) NOT NULL,
+  slot VARCHAR(40) NOT NULL,
   place VARCHAR(120) NOT NULL,
-  status VARCHAR(40) NOT NULL,
+  status VARCHAR(40) NOT NULL COMMENT '待双方确认/双方已确认',
   agenda TEXT NOT NULL
 );
 

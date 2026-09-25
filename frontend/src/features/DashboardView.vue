@@ -26,12 +26,15 @@
 
       <div class="panel">
         <h2>需求浏览</h2>
-        <el-table :data="overview.needs" size="small">
-          <el-table-column prop="title" label="需求" min-width="170" />
-          <el-table-column prop="category" label="类别" width="82" />
-          <el-table-column prop="campus" label="校区" width="96" />
-          <el-table-column prop="responses" label="响应" width="72" sortable />
-        </el-table>
+        <NeedCard
+          v-for="need in overview.needs"
+          :key="need.id"
+          :need="need"
+          :current-user="overview.profile.name"
+          @respond="openRespond"
+          @select="handleSelect"
+        />
+        <RespondDialog v-model="respondDialogVisible" :need="respondingNeed" :submitting="submitting" @submit="submitResponse" />
       </div>
 
       <div class="panel">
@@ -50,7 +53,10 @@
         <el-timeline>
           <el-timeline-item v-for="item in overview.appointments" :key="item.id" :timestamp="item.time">
             <strong>{{ item.pair }}</strong>
-            <p>{{ item.place }} · {{ item.status }}</p>
+            <p>
+              {{ item.place }}
+              <el-tag :type="appointmentTag(item.status)" size="small">{{ item.status }}</el-tag>
+            </p>
             <p class="muted">{{ item.agenda }}</p>
           </el-timeline-item>
         </el-timeline>
@@ -88,24 +94,83 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import AppHeader from '../components/AppHeader.vue';
 import FeatureCard from '../components/FeatureCard.vue';
 import MetricCard from '../components/MetricCard.vue';
 import RadarChart from '../components/RadarChart.vue';
+import NeedCard from '../components/needs/NeedCard.vue';
+import RespondDialog from '../components/needs/RespondDialog.vue';
 import { fetchOverview } from '../services/storage.service';
-import type { Overview } from '../types/domain';
+import { selectNeedCandidate, submitNeedResponse } from '../services/need.service';
+import { APPOINTMENT_STATUS_TAG, type TagType } from '../constants/need.constants';
+import type { NeedResponse, NeedView, Overview, ResponsePayload } from '../types/domain';
 
 const overview = ref<Overview | null>(null);
 const loading = ref(true);
 const error = ref('');
+const respondDialogVisible = ref(false);
+const respondingNeed = ref<NeedView | null>(null);
+const submitting = ref(false);
 
-onMounted(async () => {
+async function loadOverview() {
   try {
     overview.value = await fetchOverview();
+    error.value = '';
   } catch (err) {
     error.value = err instanceof Error ? err.message : '加载失败';
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(loadOverview);
+
+function openRespond(need: NeedView) {
+  respondingNeed.value = need;
+  respondDialogVisible.value = true;
+}
+
+async function submitResponse(payload: ResponsePayload) {
+  if (!respondingNeed.value) {
+    return;
+  }
+  submitting.value = true;
+  try {
+    await submitNeedResponse(respondingNeed.value.id, payload.note, payload.slots);
+    ElMessage.success('响应已提交，等待发起人选定');
+    respondDialogVisible.value = false;
+    await loadOverview();
+  } catch (err) {
+    ElMessage.error(err instanceof Error ? err.message : '响应提交失败');
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function handleSelect(payload: { need: NeedView; candidate: NeedResponse }) {
+  const { need, candidate } = payload;
+  try {
+    await ElMessageBox.confirm(
+      `选定 ${candidate.student} 后将按需求时间「${need.expectTime}」生成待双方确认的预约，其余响应停止接收。`,
+      '选定候选人',
+      { confirmButtonText: '确定选定', cancelButtonText: '再想想', type: 'warning' },
+    );
+  } catch {
+    return;
+  }
+  try {
+    await selectNeedCandidate(need.id, candidate.id);
+    ElMessage.success(`已选定 ${candidate.student}，预约待双方确认`);
+  } catch (err) {
+    // 时段冲突等业务异常：提示原因，需求仍可改选其他人
+    ElMessage.error(err instanceof Error ? err.message : '选定失败');
+  } finally {
+    await loadOverview();
+  }
+}
+
+function appointmentTag(status: string): TagType {
+  return APPOINTMENT_STATUS_TAG[status] ?? 'info';
+}
 </script>
